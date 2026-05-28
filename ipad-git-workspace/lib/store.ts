@@ -111,13 +111,35 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   },
 
   closeFile: (path) => {
-    const { openFiles, activeFilePath } = get()
-    const filtered = openFiles.filter(f => f.path !== path)
-    set({ 
-      openFiles: filtered,
-      activeFilePath: activeFilePath === path ? (filtered[0]?.path || null) : activeFilePath
-    })
-  },
+  const { openFiles, activeFilePath } = get()
+  
+  // 1. Cari posisi (index) tab yang mau ditutup
+  const closedIndex = openFiles.findIndex(f => f.path === path)
+  if (closedIndex === -1) return; // Safety check
+
+  // 2. Filter array untuk membuang file yang ditutup
+  const filtered = openFiles.filter(f => f.path !== path)
+  
+  // 3. Tentukan tab mana yang harus aktif selanjutnya
+  let newActivePath = activeFilePath
+  if (activeFilePath === path) {
+    if (filtered.length === 0) {
+      newActivePath = null // Kalau ini tab terakhir, kosongkan
+    } else if (closedIndex < filtered.length) {
+      // Pindah ke tab di sebelah kanannya
+      newActivePath = filtered[closedIndex].path
+    } else {
+      // Kalau yang ditutup tab paling kanan, pindah ke tab di sebelah kirinya
+      newActivePath = filtered[closedIndex - 1].path
+    }
+  }
+
+  // 4. Update State
+  set({
+    openFiles: filtered,
+    activeFilePath: newActivePath,
+  })
+},
 
   setActiveFile: (path) => set({ activeFilePath: path }),
   setGitStatus: (status) => set({ gitStatus: status }),
